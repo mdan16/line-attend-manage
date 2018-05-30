@@ -1,0 +1,18 @@
+{% extends "lineattend/base.html" %}
+{% load bootstrap4 %}
+
+{% block title %}カレンダーの編集{% endblock title %} 
+{% block content %}
+    <h4 class="mt-4 mb-5 border-bottom">カレンダーの編集</h4>
+    <form action"{% url 'lineattend:event_edit' event_id=event_id %}" method="post">
+
+        {% csrf_token %}
+        {% bootstrap_form form layout='horizontal' %}
+        <div class="form-group row">
+            <div class="offset-md-3 col-md-9">
+                <button type="submit" class="btn btn-primary">送信</button>
+            </div>
+        </div>
+    </form>
+    <a class="btn btn-secondary btn-sm" href="{% url 'lineattend:event_list' %}">戻る</a>
+{% endblock content %}
