@@ -2,13 +2,14 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 
-from lineattend.models import Event, Attendee
+from lineattend.models import *
 from lineattend.forms import EventForm
 
 from apiclient.discovery import build
 from httplib2 import Http
 from oauth2client.service_account import ServiceAccountCredentials
 import datetime
+import re
 import requests
 import json
 from dateutil.parser import parse
@@ -152,16 +153,55 @@ def api(request):
                         }
                     ]
                 }
-            else:
+            elif request_event['message']['text'] == "名前登録":
+                # 苗字を登録させる
+                # 空データをUserに挿入
+                User.save_user_id(request_event['source']['userId'])
                 payload = {
                     "replyToken": reply_token,
                     "messages": [
                         {
                             "type": "text",
-                            "text": "不正な送信です"
+                            "text": "苗字を入力してください"
                         }
                     ]
                 }
+            else:
+                user_id = request_event['source']['userId']
+                user = User.objects.filter(user_id=user_id).first()
+
+                if user.name == '' and user.hiragana_name == '':
+                    User.save_name(user_id, request_event['message']['text'])
+                    payload = {
+                        "replyToken": reply_token,
+                        "messages": [
+                            {
+                                "type": "text",
+                                "text": "苗字の読み方をひらがなで入力してください"
+                            }
+                        ]
+                    }
+                elif user.hiragana_name == '' and re.match('^[あ-ん]+$', request_event['message']['text']):
+                    User.save_hiragana_name(user_id, request_event['message']['text'])
+                    payload = {
+                        "replyToken": reply_token,
+                        "messages": [
+                            {
+                                "type": "text",
+                                "text": "名前を登録しました"
+                            }
+                        ]
+                    }
+                else:
+                    payload = {
+                        "replyToken": reply_token,
+                        "messages": [
+                            {
+                                "type": "text",
+                                "text": "不正な送信です"
+                            }
+                        ]
+                    }
         elif request_event['type'] == 'postback':
             # 参加の登録
             user = request_event['source']['userId']

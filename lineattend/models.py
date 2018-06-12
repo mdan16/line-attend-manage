@@ -53,3 +53,49 @@ class Attendee(models.Model):
             exist_data.attend = attend
             exist_data.save()
         return
+
+
+class User(models.Model):
+    """ユーザー"""
+    user_id = models.CharField('ユーザーID', max_length=255)
+    name = models.CharField('名前', max_length=255, default='')
+    hiragana_name = models.CharField('読み方', max_length=255, default='')
+
+    def __str__(self):
+        return self.name
+
+    @classmethod
+    def save_user_id(cls, user_id):
+        user = cls.objects.filter(user_id=user_id).first()
+        if user:
+            user.name = ''
+            user.hiragana_name = ''
+            user.save()
+        else:
+            cls(user_id=user_id).save()
+
+    @classmethod
+    def save_name(cls, user_id, name):
+        user = cls.objects.filter(user_id=user_id).first()
+        if user:
+            user.name = name
+            user.save()
+
+    @classmethod
+    def save_hiragana_name(cls, user_id, hiragana_name):
+        user = cls.objects.filter(user_id=user_id).first()
+        if user:
+            user.hiragana_name = hiragana_name
+            user.save()
+
+
+class Match(models.Model):
+    """試合結果"""
+    my_user = models.ForeignKey(User, related_name='my_user', on_delete=models.CASCADE)
+    opponent_user = models.ForeignKey(User, related_name='opponent_user', on_delete=models.CASCADE)
+    my_set = models.IntegerField('自分のセット数', default=0)
+    opponent_set = models.IntegerField('相手のセット数', default=0)
+    date = models.DateTimeField('日時')
+
+    def __str__(self):
+        return my_user.name + "-" + opponent_user.name
