@@ -166,9 +166,26 @@ def api(request):
                         }
                     ]
                 }
+            elif request_event['message']['text'] == "試合結果登録":
+                # 相手の苗字を入力して試合結果を登録する
+                # 空の試合データを挿入
+                my_user = User.objects.filter(user_id=request_event['source']['userId']).first()
+                Match(my_user=my_user, date=datetime.datetime.now()).save()
+                payload = {
+                    "replyToken": reply_token,
+                    "messages": [
+                        {
+                            "type": "text",
+                            "text": "相手の苗字をひらがなで入力してください"
+                        }
+                    ]
+                }
+
             else:
                 user_id = request_event['source']['userId']
                 user = User.objects.filter(user_id=user_id).first()
+
+                match = Match.objects.filter(my_user=user, my_set__isnull=True).first()
 
                 if user.name == '' and user.hiragana_name == '':
                     User.save_name(user_id, request_event['message']['text'])
@@ -192,6 +209,60 @@ def api(request):
                             }
                         ]
                     }
+                elif match:
+                    opponent_user = User.objects.filter(hiragana_name=request_event['message']['text']).first()
+                    match.opponent_user = opponent_user
+                    match.save()
+                    if opponent_user:
+                        payload = {
+                            "replyToken": reply_token,
+                            "messages": [
+                                {
+                                    "type": "template",
+                                    "altText": "This is a buttons tmplete",
+                                    "template": {
+                                        "type": "buttons",
+                                        "text": "あなたのセット数は？",
+                                        "actions": [
+                                            {
+                                                "type": "postback",
+                                                "label": "1",
+                                                "displayText": "1",
+                                                "data": "my_set_regist:1"
+                                            },
+                                            {
+                                                "type": "postback",
+                                                "label": "2",
+                                                "displayText": "2",
+                                                "data": "my_set_regist:2"
+                                            },
+                                            {
+                                                "type": "postback",
+                                                "label": "3",
+                                                "displayText": "3",
+                                                "data": "my_set_regist:3"
+                                            },
+                                            {
+                                                "type": "postback",
+                                                "label": "4",
+                                                "displayText": "4",
+                                                "data": "my_set_regist:4"
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    else:
+                        payload = {
+                            "replyToken": reply_token,
+                            "messages": [
+                                {
+                                    "type": "text",
+                                    "text": "対戦相手が見つかりません\nもう一度入力してください"
+                                }
+                            ]
+                        }
                 else:
                     payload = {
                         "replyToken": reply_token,
@@ -203,18 +274,69 @@ def api(request):
                         ]
                     }
         elif request_event['type'] == 'postback':
-            # 参加の登録
-            user = request_event['source']['userId']
-            Attendee.save_postback(user, request_event['postback']['data'])
-            # 確認テンプレートのpostbackへの応答
-            payload = {
-                "replyToken": reply_token,
-                "messages": [
-                    {
-                        "type": "text",
-                        "text": "登録しました"
-                    }
-                ]
-            }
+            if request_event['postback']['data'].count("my_set_regist"):
+                payload = {
+                    "replyToken": reply_token,
+                    "messages": [
+                        {
+                            "type": "template",
+                            "altText": "This is a buttons tmplete",
+                            "template": {
+                                "type": "buttons",
+                                "text": "相手のセット数は？",
+                                "actions": [
+                                    {
+                                        "type": "postback",
+                                        "label": "1",
+                                        "displayText": "1",
+                                        "data": "opponent_set_regist:1"
+                                    },
+                                    {
+                                        "type": "postback",
+                                        "label": "2",
+                                        "displayText": "2",
+                                        "data": "opponent_set_regist:2"
+                                    },
+                                    {
+                                        "type": "postback",
+                                        "label": "3",
+                                        "displayText": "3",
+                                        "data": "opponent_set_regist:3"
+                                    },
+                                    {
+                                        "type": "postback",
+                                        "label": "4",
+                                        "displayText": "4",
+                                        "data": "opponent_set_regist:4"
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            elif request_event['postback']['data'].count("opponent_set_regist"):
+                payload = {
+                    "replyToken": reply_token,
+                    "messages": [
+                        {
+                            "type": "text",
+                            "text": "試合結果を登録しました"
+                        }
+                    ]
+                }
+            else:
+                # 参加の登録
+                user = request_event['source']['userId']
+                Attendee.save_postback(user, request_event['postback']['data'])
+                # 確認テンプレートのpostbackへの応答
+                payload = {
+                    "replyToken": reply_token,
+                    "messages": [
+                        {
+                            "type": "text",
+                            "text": "登録しました"
+                        }
+                    ]
+                }
         requests.post(REPLY_ENDPOINT, headers=header, data=json.dumps(payload))
     return HttpResponse(status=200)

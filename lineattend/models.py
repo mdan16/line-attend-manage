@@ -92,10 +92,10 @@ class User(models.Model):
 class Match(models.Model):
     """試合結果"""
     my_user = models.ForeignKey(User, related_name='my_user', on_delete=models.CASCADE)
-    opponent_user = models.ForeignKey(User, related_name='opponent_user', on_delete=models.CASCADE)
-    my_set = models.IntegerField('自分のセット数', default=0)
-    opponent_set = models.IntegerField('相手のセット数', default=0)
+    opponent_user = models.ForeignKey(User, related_name='opponent_user', null=True, blank=True, on_delete=models.CASCADE)
+    my_set = models.IntegerField('自分のセット数', null=True, default=None)
+    opponent_set = models.IntegerField('相手のセット数', null=True, default=None)
     date = models.DateTimeField('日時')
 
     def __str__(self):
-        return my_user.name + "-" + opponent_user.name
+        return str(self.my_user) + "-" + str(self.opponent_user)
